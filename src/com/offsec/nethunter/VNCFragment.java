@@ -76,6 +76,27 @@ public class VNCFragment extends Fragment {
         return fragment;
     }
 
+    public static String VNCArch() {
+	ShellExecuter exe = new ShellExecuter();
+	String ABI = exe.RunAsRootOutput("getprop ro.product.cpu.abi");
+	String ARCH_PATH;
+        switch (ABI) {
+		case "arm64-v8a":
+			ARCH_PATH = "aarch64-linux-gnu";
+			break;
+// Kali NetHunter doesn't have active x86* support for now. Let's disable it temporarily.
+//		case "x86_64":
+//			ARCH_PATH = "x86_64-linux-gnu";
+//			break;
+//		case "x86":
+//			ARCH_PATH = "i386-linux-gnu";
+//			break;
+		default:
+			ARCH_PATH = "arm-linux-gnueabihf";
+	}
+	return ARCH_PATH;
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -317,10 +338,9 @@ public class VNCFragment extends Fragment {
                     File rootvncpasswd = new File(nh.CHROOT_PATH() + "/root/.vnc/passwd");
                     String vnc_passwd = exe.RunAsRootOutput("cat " + rootvncpasswd);
                     if(!vnc_passwd.equals("")) {
-                        String arch_path = exe.RunAsRootOutput("ls " + nh.CHROOT_PATH() + "/usr/lib/ | grep linux-gnu");
                         String shebang = "#!/system/bin/sh\n";
-                        String kex_prep = "\n# KeX architecture path: " + arch_path + "\n# Commands to run at boot:\nHOME=/root\nUSER=root";
-                        String kex_cmd = "su -c \'" + nh.APP_SCRIPTS_PATH + "/bootkali custom_cmd LD_PRELOAD=/usr/lib/" + arch_path + "/libgcc_s.so.1 vncserver :1 " + localhostonly + " " + selected_vncresCMD + "\'";
+                        String kex_prep = "\n# KeX architecture path: " + VNCArch() + "\n# Commands to run at boot:\nHOME=/root\nUSER=root";
+                        String kex_cmd = "su -c \'" + nh.APP_SCRIPTS_PATH + "/bootkali custom_cmd LD_PRELOAD=/usr/lib/" + VNCArch() + "/libgcc_s.so.1 vncserver :1 " + localhostonly + " " + selected_vncresCMD + "\'";
                         String fileContents = shebang + "\n" + kex_prep + "\n" + kex_cmd;
                         exe.RunAsRoot(new String[]{
                                 "cat > " + kex_init + " <<s0133717hur75\n" + fileContents + "\ns0133717hur75\n",
@@ -356,11 +376,10 @@ public class VNCFragment extends Fragment {
             if(vnc_passwd.equals("")) {
                 Toast.makeText(getActivity().getApplicationContext(), "Please setup local server first!", Toast.LENGTH_SHORT).show();
             } else {
-                String arch_path = exe.RunAsRootOutput("ls " + nh.CHROOT_PATH() + "/usr/lib/ | grep linux-gnu");
                 if(selected_user.equals("root")) {
-                        intentClickListener_NH("echo -ne \"\\033]0;Starting Server\\007\" && clear;HOME=/root;USER=root;sudo -u root LD_PRELOAD=/usr/lib/" + arch_path + "/libgcc_s.so.1 nohup vncserver :" + selected_display + " " + localhostonly + "-name \"NetHunter KeX\" " + selected_vncresCMD + " >/dev/null 2>&1 </dev/null;echo \"Server started! Closing terminal..\" && sleep 2 && exit");
+                        intentClickListener_NH("echo -ne \"\\033]0;Starting Server\\007\" && clear;HOME=/root;USER=root;sudo -u root LD_PRELOAD=/usr/lib/" + VNCArch() + "/libgcc_s.so.1 nohup vncserver :" + selected_display + " " + localhostonly + "-name \"NetHunter KeX\" " + selected_vncresCMD + " >/dev/null 2>&1 </dev/null;echo \"Server started! Closing terminal..\" && sleep 2 && exit");
                     } else {
-                        intentClickListener_NH("echo -ne \"\\033]0;Starting Server\\007\" && clear;HOME=/home/" + selected_user + ";USER=" + selected_user + ";sudo -u " + selected_user + " LD_PRELOAD=/usr/lib/" + arch_path + "/libgcc_s.so.1 nohup vncserver :" + selected_display + " " + localhostonly + "-name \"NetHunter KeX\" " + selected_vncresCMD + " >/dev/null 2>&1 </dev/null;echo \"Server started! Closing terminal..\" && sleep 2 && exit");
+                        intentClickListener_NH("echo -ne \"\\033]0;Starting Server\\007\" && clear;HOME=/home/" + selected_user + ";USER=" + selected_user + ";sudo -u " + selected_user + " LD_PRELOAD=/usr/lib/" + VNCArch() + "/libgcc_s.so.1 nohup vncserver :" + selected_display + " " + localhostonly + "-name \"NetHunter KeX\" " + selected_vncresCMD + " >/dev/null 2>&1 </dev/null;echo \"Server started! Closing terminal..\" && sleep 2 && exit");
                     }
                 Log.d(TAG, localhostonly);
             }
